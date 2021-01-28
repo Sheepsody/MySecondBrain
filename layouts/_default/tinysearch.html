@@ -1,0 +1,100 @@
+{{- define "main" }}
+
+  <!-- Note the usage of `type=module` here as this is an ES6 module -->
+  <script type="module">
+    // Use ES module import syntax to import functionality from the module
+    // that we have compiled.
+    //
+    // Note that the `default` import is an initialization function which
+    // will "boot" the module and make it ready to use. Currently browsers
+    // don't support natively imported WebAssembly as an ES module, but
+    // eventually the manual initialization won't be required!
+    // import { search, default as init } from './tinysearch_engine.js';
+    import { search, default as init } from '/tinysearch/tinysearch_engine.js';
+    window.search = search;
+
+    async function run() {
+      // First up we need to actually load the wasm file, so we use the
+      // default export to inform it where the wasm file is located on the
+      // server, and then we wait on the returned promise to wait for the
+      // wasm to be loaded.
+      //
+      // Note that instead of a string here you can also pass in an instance
+      // of `WebAssembly.Module` which allows you to compile your own module.
+      // Also note that the promise, when resolved, yields the wasm module's
+      // exports which is the same as importing the `*_bg` module in other
+      // modes
+      await init('/tinysearch/tinysearch_engine_bg.wasm');
+    }
+
+    run();
+  </script>
+
+  <script>
+    // And afterwards we can use all the functionality defined in wasm.
+    function doSearch() {
+      let value = document.getElementById("searchInput").value;
+        console.log(value);
+      const arr = search(value, 10);
+        console.log(arr)
+      let ul = document.getElementById("searchResults");
+      ul.innerHTML = "";
+
+      for (i = 0; i < arr.length; i++) {
+        var li = document.createElement("li");
+        li.setAttribute('class', 'post-entry')
+
+        let elem = arr[i];
+
+          let elemHeader = document.createElement('header')
+        elemHeader.setAttribute('class', 'entry-header')
+          elemHeader.innerHTML = elem[0]
+        
+        let elemlink = document.createElement('a');
+        elemlink.setAttribute('href', elem[1]);
+
+        li.appendChild(elemlink);
+          li.appendChild(elemHeader);
+        ul.appendChild(li);
+      }
+    }
+
+  </script>
+
+
+<header class="page-header">
+    <h1>{{ .Title }}
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+    </h1>
+    {{- if not (.Param "hideMeta") }}
+    <div class="post-meta">
+        {{- if .IsTranslated -}}
+        <ul class="i18n_list">
+            {{- i18n "translations" | default "Translations"}}:
+            {{- range .Translations }}
+            <li>
+                <a href="{{ .Permalink }}">
+                    {{- if (and $.Site.Params.displayFullLangName (.Language.LanguageName)) }}
+                    {{- .Language.LanguageName | emojify | humanize -}}
+                    {{- else }}
+                    {{- .Lang | humanize -}}
+                    {{- end -}}
+                </a>
+            </li>
+            {{- end }}
+        </ul>
+        {{- end }}
+    </div>
+    {{- end}}
+</header>
+
+<div id="searchbox">
+    <input id="searchInput" autofocus placeholder="{{.Title}} ↵" aria-label="search" onkeyup="doSearch()">
+    <ul id="searchResults" aria-label="search results"></ul>
+</div>
+
+{{- end  }}{{/* end main */}}

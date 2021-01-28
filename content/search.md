@@ -1,5 +1,5 @@
 ---
 title: "Search"
-layout: "search"
-summary: "search"
+layout: "tinysearch"
+summary: "tinysearch"
 ---
